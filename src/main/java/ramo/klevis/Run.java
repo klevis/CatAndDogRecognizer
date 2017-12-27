@@ -1,7 +1,9 @@
 package ramo.klevis;
 
+import org.datavec.api.io.filters.BalancedPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
 import org.datavec.api.split.FileSplit;
+import org.datavec.api.split.InputSplit;
 import org.datavec.image.loader.BaseImageLoader;
 import org.datavec.image.loader.NativeImageLoader;
 import org.datavec.image.recordreader.ImageRecordReader;
@@ -10,6 +12,7 @@ import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.Updater;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.graph.ComputationGraph;
+import org.deeplearning4j.nn.modelimport.keras.trainedmodels.TrainedModels;
 import org.deeplearning4j.nn.transferlearning.FineTuneConfiguration;
 import org.deeplearning4j.nn.transferlearning.TransferLearning;
 import org.deeplearning4j.nn.transferlearning.TransferLearningHelper;
@@ -19,7 +22,9 @@ import org.deeplearning4j.zoo.PretrainedType;
 import org.deeplearning4j.zoo.ZooModel;
 import org.deeplearning4j.zoo.model.VGG16;
 import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.dataset.api.DataSetPreProcessor;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
+import org.nd4j.linalg.dataset.api.preprocessor.VGG16ImagePreProcessor;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 import java.io.File;
@@ -32,6 +37,7 @@ import java.util.Random;
 public class Run {
     private static final long seed = 12345;
     private static final Random randNumGen = new Random(seed);
+    private static final String[] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
     private static String DATA_PATH = "resources";
 
     public static void main(String[] args) throws IOException {
@@ -44,18 +50,21 @@ public class Run {
         File testData = new File(DATA_PATH + "/test");
 
 
+        ParentPathLabelGenerator labelGeneratorMaker = new ParentPathLabelGenerator();
         // Define the FileSplit(PATH, ALLOWED FORMATS,random)
-
+        BalancedPathFilter pathFilter = new BalancedPathFilter(randNumGen, allowedExtensions, labelGeneratorMaker);
         FileSplit train = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-        FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
+//        FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
 
         // Extract the parent path as the image label
 
-        ParentPathLabelGenerator labelGenerator = new ParentPathLabelGenerator();
-        ImageRecordReader imageRecordReader = new ImageRecordReader(224, 224, 3, labelGenerator);
-        imageRecordReader.initialize(train);
+        ImageRecordReader imageRecordReader = new ImageRecordReader(224, 224, 3, labelGeneratorMaker);
+        InputSplit[] sample = train.sample(pathFilter, 20, 80);
+        imageRecordReader.initialize(sample[0]);
 
-        DataSetIterator trainIterator = new RecordReaderDataSetIterator(imageRecordReader, 128, 1, 1);
+        DataSetIterator trainIterator = new RecordReaderDataSetIterator(imageRecordReader, 64, 1, 1);
+        trainIterator.setPreProcessor(new VGG16ImagePreProcessor());
+
 
         FineTuneConfiguration fineTuneConf = new FineTuneConfiguration.Builder()
                 .learningRate(5e-5)
@@ -76,10 +85,6 @@ public class Run {
                 .build();
 
 
-        TransferLearningHelper transferLearningHelper =
-                new TransferLearningHelper(vgg16Transfer);
-        while (trainIterator.hasNext()) {
-            transferLearningHelper.fitFeaturized(trainIterator.next());
-        }
+        vgg16Transfer.fit(trainIterator);
     }
 }
