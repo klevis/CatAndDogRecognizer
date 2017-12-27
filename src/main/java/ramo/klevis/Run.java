@@ -17,6 +17,7 @@ import org.deeplearning4j.nn.transferlearning.FineTuneConfiguration;
 import org.deeplearning4j.nn.transferlearning.TransferLearning;
 import org.deeplearning4j.nn.transferlearning.TransferLearningHelper;
 import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.ui.standalone.ClassPathResource;
 import org.deeplearning4j.zoo.PretrainedType;
 import org.deeplearning4j.zoo.ZooModel;
@@ -62,7 +63,7 @@ public class Run {
         InputSplit[] sample = train.sample(pathFilter, 20, 80);
         imageRecordReader.initialize(sample[0]);
 
-        DataSetIterator trainIterator = new RecordReaderDataSetIterator(imageRecordReader, 64, 1, 1);
+        DataSetIterator trainIterator = new RecordReaderDataSetIterator(imageRecordReader, 32, 1, 1);
         trainIterator.setPreProcessor(new VGG16ImagePreProcessor());
 
 
@@ -83,7 +84,7 @@ public class Run {
                                 .weightInit(WeightInit.XAVIER)
                                 .activation(Activation.SOFTMAX).build(), "fc2")
                 .build();
-
+        vgg16Transfer.setListeners(new ScoreIterationListener(5));
 
         vgg16Transfer.fit(trainIterator);
     }
