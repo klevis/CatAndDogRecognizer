@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -101,14 +102,7 @@ public class Run {
                 if (i % 100 == 0) {
                     ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_10_32_" + i + ".zip"), true);
                 }
-                evalOnTrain(vgg16Transfer, trained);
-                if (testIterator == null) {
-                    testIterator = getDataSetIterator(test.sample(PATH_FILTER, 10, 90)[0]);
-                }
-                evalOnTrain(vgg16Transfer, testIterator.next());
-//                evalOnTest(test, vgg16Transfer, testIterator, iEpoch);
                 i++;
-
             }
             trainIterator.reset();
             iEpoch++;
@@ -133,13 +127,13 @@ public class Run {
 
     }
 
-    public static void evalOnTrain(ComputationGraph vgg16Transfer, DataSet trained) {
-        Evaluation eval = new Evaluation(1);
-        INDArray output = vgg16Transfer.outputSingle(trained.getFeatures());
-        INDArray labels = trained.getLabels();
-        eval.eval(labels, output);
-        log.info(eval.stats());
-    }
+//    public static void evalOnTrain(ComputationGraph vgg16Transfer, DataSet trained) {
+//        Evaluation eval = new Evaluation(1);
+//        INDArray output = vgg16Transfer.outputSingle(trained.getFeatures());
+//        INDArray labels = trained.getLabels();
+//        eval.eval(labels, output);
+//        log.info(eval.stats());
+//    }
 
     public static void evalOnTest(FileSplit test, ComputationGraph vgg16Transfer, DataSetIterator testIterator, int iEpoch) throws IOException {
         if (testIterator == null) {
@@ -147,7 +141,7 @@ public class Run {
         }
 
         log.info("Evaluate model at iter " + iEpoch + " ....");
-        Evaluation eval = vgg16Transfer.evaluate(testIterator);
+        Evaluation eval = vgg16Transfer.evaluate(testIterator, Arrays.asList("0", "1"));
         log.info(eval.stats());
         testIterator.reset();
 

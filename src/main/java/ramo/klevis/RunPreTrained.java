@@ -26,9 +26,5 @@ public class RunPreTrained {
         InputSplit inputSplit = test.sample(PATH_FILTER, 1)[0];
         DataSetIterator dataSetIterator = getDataSetIterator(inputSplit);
         evalOnTest(test, computationGraph, dataSetIterator, 1);
-        dataSetIterator.reset();
-        while (dataSetIterator.hasNext()) {
-            evalOnTrain(computationGraph, dataSetIterator.next());
-        }
     }
 }
