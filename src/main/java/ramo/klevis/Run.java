@@ -8,25 +8,26 @@ import org.datavec.image.loader.BaseImageLoader;
 import org.datavec.image.loader.NativeImageLoader;
 import org.datavec.image.recordreader.ImageRecordReader;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
+import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.Updater;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.graph.ComputationGraph;
-import org.deeplearning4j.nn.modelimport.keras.trainedmodels.TrainedModels;
 import org.deeplearning4j.nn.transferlearning.FineTuneConfiguration;
 import org.deeplearning4j.nn.transferlearning.TransferLearning;
-import org.deeplearning4j.nn.transferlearning.TransferLearningHelper;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
-import org.deeplearning4j.ui.standalone.ClassPathResource;
+import org.deeplearning4j.util.ModelSerializer;
 import org.deeplearning4j.zoo.PretrainedType;
 import org.deeplearning4j.zoo.ZooModel;
 import org.deeplearning4j.zoo.model.VGG16;
 import org.nd4j.linalg.activations.Activation;
-import org.nd4j.linalg.dataset.api.DataSetPreProcessor;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.VGG16ImagePreProcessor;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,34 +38,37 @@ import java.util.Random;
  */
 public class Run {
     private static final long seed = 12345;
-    private static final Random randNumGen = new Random(seed);
-    private static final String[] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
-    private static String DATA_PATH = "resources";
+    public static final Random randNumGen = new Random(seed);
+    public static final String[] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
+
+    private static final int TRAIN_LOAD_SIZE = 100;
+    private static int BATCH_SIZE = 15;
+    private static final int EPOCH = 10;
+
+    public static String DATA_PATH = "resources";
+    public static final String TRAIN_FOLDER = DATA_PATH + "/train";
+    public static final String TEST_FOLDER = DATA_PATH + "/test";
+
+    private static final String featurizeExtractionLayer = "fc2";
+
+    private static final Logger log = org.slf4j.LoggerFactory.getLogger(Run.class);
+    public static ParentPathLabelGenerator LABEL_GENERATOR_MAKER = new ParentPathLabelGenerator();
+    public static BalancedPathFilter PATH_FILTER = new BalancedPathFilter(randNumGen, allowedExtensions, LABEL_GENERATOR_MAKER);
 
     public static void main(String[] args) throws IOException {
         ZooModel zooModel = new VGG16();
         ComputationGraph pretrainedNet = (ComputationGraph) zooModel.initPretrained(PretrainedType.IMAGENET);
-
+        log.info(pretrainedNet.summary());
 
         // Define the File Paths
-        File trainData = new File(DATA_PATH + "/train");
-        File testData = new File(DATA_PATH + "/test");
-
-
-        ParentPathLabelGenerator labelGeneratorMaker = new ParentPathLabelGenerator();
-        // Define the FileSplit(PATH, ALLOWED FORMATS,random)
-        BalancedPathFilter pathFilter = new BalancedPathFilter(randNumGen, allowedExtensions, labelGeneratorMaker);
+        File trainData = new File(TRAIN_FOLDER);
+        File testData = new File(TEST_FOLDER);
         FileSplit train = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-//        FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
+        FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
 
-        // Extract the parent path as the image label
 
-        ImageRecordReader imageRecordReader = new ImageRecordReader(224, 224, 3, labelGeneratorMaker);
-        InputSplit[] sample = train.sample(pathFilter, 20, 80);
-        imageRecordReader.initialize(sample[0]);
-
-        DataSetIterator trainIterator = new RecordReaderDataSetIterator(imageRecordReader, 32, 1, 1);
-        trainIterator.setPreProcessor(new VGG16ImagePreProcessor());
+        InputSplit[] sample = train.sample(PATH_FILTER, TRAIN_LOAD_SIZE, 100 - TRAIN_LOAD_SIZE);
+        DataSetIterator trainIterator = getDataSetIterator(sample[0]);
 
 
         FineTuneConfiguration fineTuneConf = new FineTuneConfiguration.Builder()
@@ -76,16 +80,98 @@ public class Run {
 
         ComputationGraph vgg16Transfer = new TransferLearning.GraphBuilder(pretrainedNet)
                 .fineTuneConfiguration(fineTuneConf)
-                .setFeatureExtractor("fc2")
+                .setFeatureExtractor(featurizeExtractionLayer)
                 .removeVertexKeepConnections("predictions")
                 .addLayer("predictions",
                         new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
                                 .nIn(4096).nOut(1)
                                 .weightInit(WeightInit.XAVIER)
-                                .activation(Activation.SOFTMAX).build(), "fc2")
+                                .activation(Activation.SIGMOID).build(), featurizeExtractionLayer)
                 .build();
         vgg16Transfer.setListeners(new ScoreIterationListener(5));
+        log.info(vgg16Transfer.summary());
 
-        vgg16Transfer.fit(trainIterator);
+        DataSetIterator testIterator = null;
+        int iEpoch = 0;
+        int i = 0;
+        while (iEpoch < EPOCH) {
+            while (trainIterator.hasNext()) {
+                DataSet trained = trainIterator.next();
+                vgg16Transfer.fit(trained);
+                if (i % 100 == 0) {
+                    ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_10_32_" + i + ".zip"), true);
+                }
+                evalOnTrain(vgg16Transfer, trained);
+                if (testIterator == null) {
+                    testIterator = getDataSetIterator(test.sample(PATH_FILTER, 10, 90)[0]);
+                }
+                evalOnTrain(vgg16Transfer, testIterator.next());
+//                evalOnTest(test, vgg16Transfer, testIterator, iEpoch);
+                i++;
+
+            }
+            trainIterator.reset();
+            iEpoch++;
+            evalOnTest(test, vgg16Transfer, testIterator, iEpoch);
+        }
+
+
+//        int trainDataSaved = 0;
+//        TransferLearningHelper transferLearningHelper =
+//                new TransferLearningHelper(vgg16Transfer, featurizeExtractionLayer);
+//        while (trainDataSaved != 4) {
+//            DataSet currentFeaturized = transferLearningHelper.featurize(trainIterator.next());
+//            saveToDisk(currentFeaturized, trainDataSaved, true);
+//            trainDataSaved++;
+//            System.gc();
+//        }
+
+//        while(trainIterator.hasNext()) {
+//            DataSet currentFeaturized = transferLearningHelper.featurize(trainIterator.next());
+//            transferLearningHelper.fitFeaturized(currentFeaturized);
+//        }
+
     }
+
+    public static void evalOnTrain(ComputationGraph vgg16Transfer, DataSet trained) {
+        Evaluation eval = new Evaluation(1);
+        INDArray output = vgg16Transfer.outputSingle(trained.getFeatures());
+        INDArray labels = trained.getLabels();
+        eval.eval(labels, output);
+        log.info(eval.stats());
+    }
+
+    public static void evalOnTest(FileSplit test, ComputationGraph vgg16Transfer, DataSetIterator testIterator, int iEpoch) throws IOException {
+        if (testIterator == null) {
+            testIterator = getDataSetIterator(test.sample(PATH_FILTER, 10, 90)[0]);
+        }
+
+        log.info("Evaluate model at iter " + iEpoch + " ....");
+        Evaluation eval = vgg16Transfer.evaluate(testIterator);
+        log.info(eval.stats());
+        testIterator.reset();
+
+    }
+
+    public static DataSetIterator getDataSetIterator(InputSplit sample) throws IOException {
+        ImageRecordReader imageRecordReader = new ImageRecordReader(224, 224, 3, LABEL_GENERATOR_MAKER);
+        imageRecordReader.initialize(sample);
+
+        DataSetIterator iterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, 1);
+        iterator.setPreProcessor(new VGG16ImagePreProcessor());
+        return iterator;
+    }
+
+
+//    private static void saveToDisk(DataSet currentFeaturized, int iterNum, boolean isTrain) {
+//        File fileFolder = isTrain ? new File(TRAIN_FOLDER) : new File(TEST_FOLDER);
+//        if (iterNum == 0) {
+//            fileFolder.mkdirs();
+//        }
+//        String fileName = "flowers-" + featurizeExtractionLayer + "-";
+//        fileName += isTrain ? "train-" : "test-";
+//        fileName += iterNum + ".bin";
+//        currentFeaturized.save(new File(fileFolder, fileName));
+//        System.out.println("Saved " + (isTrain ? "train " : "test ") + "dataset #" + iterNum);
+//    }
 }
