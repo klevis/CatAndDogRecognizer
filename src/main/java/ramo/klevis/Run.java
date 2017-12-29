@@ -22,7 +22,6 @@ import org.deeplearning4j.zoo.PretrainedType;
 import org.deeplearning4j.zoo.ZooModel;
 import org.deeplearning4j.zoo.model.VGG16;
 import org.nd4j.linalg.activations.Activation;
-import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.VGG16ImagePreProcessor;
@@ -42,9 +41,9 @@ public class Run {
     public static final Random randNumGen = new Random(seed);
     public static final String[] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
 
-    private static final int TRAIN_LOAD_SIZE = 100;
+    private static final int TRAIN_LOAD_SIZE = 85;
     private static int BATCH_SIZE = 15;
-    private static final int EPOCH = 10;
+    private static final int EPOCH = 5;
 
     public static String DATA_PATH = "resources";
     public static final String TRAIN_FOLDER = DATA_PATH + "/train";
@@ -70,6 +69,7 @@ public class Run {
 
         InputSplit[] sample = train.sample(PATH_FILTER, TRAIN_LOAD_SIZE, 100 - TRAIN_LOAD_SIZE);
         DataSetIterator trainIterator = getDataSetIterator(sample[0]);
+        DataSetIterator devIterator = getDataSetIterator(sample[1]);
 
 
         FineTuneConfiguration fineTuneConf = new FineTuneConfiguration.Builder()
@@ -99,46 +99,29 @@ public class Run {
             while (trainIterator.hasNext()) {
                 DataSet trained = trainIterator.next();
                 vgg16Transfer.fit(trained);
-                if (i % 100 == 0) {
-                    ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_10_32_" + i + ".zip"), true);
+                if (i % 200 == 0 && i != 0) {
+                    ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_10_32_" + i + ".zip"), false);
+//                    evalOn(vgg16Transfer, devIterator, iEpoch);
                 }
                 i++;
             }
+
             trainIterator.reset();
             iEpoch++;
-            evalOnTest(test, vgg16Transfer, testIterator, iEpoch);
+//            if (testIterator == null) {
+//                testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
+//            }
+//            evalOn(vgg16Transfer, testIterator, iEpoch);
         }
 
 
-//        int trainDataSaved = 0;
-//        TransferLearningHelper transferLearningHelper =
-//                new TransferLearningHelper(vgg16Transfer, featurizeExtractionLayer);
-//        while (trainDataSaved != 4) {
-//            DataSet currentFeaturized = transferLearningHelper.featurize(trainIterator.next());
-//            saveToDisk(currentFeaturized, trainDataSaved, true);
-//            trainDataSaved++;
-//            System.gc();
-//        }
 
-//        while(trainIterator.hasNext()) {
-//            DataSet currentFeaturized = transferLearningHelper.featurize(trainIterator.next());
-//            transferLearningHelper.fitFeaturized(currentFeaturized);
-//        }
 
     }
 
-//    public static void evalOnTrain(ComputationGraph vgg16Transfer, DataSet trained) {
-//        Evaluation eval = new Evaluation(1);
-//        INDArray output = vgg16Transfer.outputSingle(trained.getFeatures());
-//        INDArray labels = trained.getLabels();
-//        eval.eval(labels, output);
-//        log.info(eval.stats());
-//    }
 
-    public static void evalOnTest(FileSplit test, ComputationGraph vgg16Transfer, DataSetIterator testIterator, int iEpoch) throws IOException {
-        if (testIterator == null) {
-            testIterator = getDataSetIterator(test.sample(PATH_FILTER, 10, 90)[0]);
-        }
+
+    public static void evalOn(ComputationGraph vgg16Transfer, DataSetIterator testIterator, int iEpoch) throws IOException {
 
         log.info("Evaluate model at iter " + iEpoch + " ....");
         Evaluation eval = vgg16Transfer.evaluate(testIterator, Arrays.asList("0", "1"));

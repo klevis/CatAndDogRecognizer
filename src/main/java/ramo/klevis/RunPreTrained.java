@@ -20,11 +20,12 @@ public class RunPreTrained {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(Run.class);
 
     public static void main(String[] args) throws IOException {
-        ComputationGraph computationGraph = ModelSerializer.restoreComputationGraph(new File(DATA_PATH + "/saved/RunEpoch_10_32_" + 660 + "_old.zip"));
-        File trainData = new File(TEST_FOLDER);
+        ComputationGraph computationGraph = ModelSerializer.restoreComputationGraph(new File(DATA_PATH + "/saved/RunEpoch_10_32_" + 2200 + "_old.zip"));
+        File trainData = new File(TRAIN_FOLDER);
         FileSplit test = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-        InputSplit inputSplit = test.sample(PATH_FILTER, 1)[0];
+        InputSplit inputSplit = test.sample(PATH_FILTER, 20, 80)[0];
         DataSetIterator dataSetIterator = getDataSetIterator(inputSplit);
-        evalOnTest(test, computationGraph, dataSetIterator, 1);
+        evalOn(computationGraph, dataSetIterator, 1);
+
     }
 }
