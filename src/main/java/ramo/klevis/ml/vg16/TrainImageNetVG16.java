@@ -57,8 +57,8 @@ public class TrainImageNetVG16 {
 
     public static void main(String[] args) throws IOException {
         ZooModel zooModel = new VGG16();
-        ComputationGraph pretrainedNet = (ComputationGraph) zooModel.initPretrained(PretrainedType.IMAGENET);
-        log.info(pretrainedNet.summary());
+        ComputationGraph preTrainedNet = (ComputationGraph) zooModel.initPretrained(PretrainedType.IMAGENET);
+        log.info(preTrainedNet.summary());
 
         // Define the File Paths
         File trainData = new File(TRAIN_FOLDER);
@@ -79,7 +79,7 @@ public class TrainImageNetVG16 {
                 .seed(seed)
                 .build();
 
-        ComputationGraph vgg16Transfer = new TransferLearning.GraphBuilder(pretrainedNet)
+        ComputationGraph vgg16Transfer = new TransferLearning.GraphBuilder(preTrainedNet)
                 .fineTuneConfiguration(fineTuneConf)
                 .setFeatureExtractor(featurizeExtractionLayer)
                 .removeVertexKeepConnections("predictions")

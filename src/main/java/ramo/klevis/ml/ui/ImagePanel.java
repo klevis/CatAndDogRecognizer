@@ -4,6 +4,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -14,32 +15,24 @@ public class ImagePanel extends JPanel {
     public static final int DEFAULT_HEIGHT = 400;
     private Image img;
     private BufferedImage bufferedImage;
-    private boolean sourceImage;
+    private InputStream imageStream;
 
 
-    public ImagePanel(boolean sourceImage) throws IOException {
-        this.sourceImage = sourceImage;
+    public ImagePanel() throws IOException {
         showDefault();
     }
 
     public void showDefault() throws IOException {
-        String showDefaultImage = getDefaultImage(sourceImage);
-        setImage(getClass().getResourceAsStream(showDefaultImage));
-    }
-
-
-    public BufferedImage getCurrentBufferedImage() {
-        return bufferedImage;
-    }
-
-    public void setBufferedImage(BufferedImage bufferedImage) {
-        this.bufferedImage = bufferedImage;
+        String showDefaultImage = getDefaultImage();
+        imageStream = new FileInputStream("resources/"+showDefaultImage);
+        setImage(imageStream);
     }
 
     public void setImage(InputStream imageStream) throws IOException {
         bufferedImage = ImageIO.read(imageStream);
         Image scaledInstance = bufferedImage.getScaledInstance(DEFAULT_WIDTH, DEFAULT_HEIGHT, Image.SCALE_DEFAULT);
         setImage(scaledInstance);
+        this.imageStream = imageStream;
     }
 
     public void paintComponent(Graphics g) {
@@ -58,14 +51,8 @@ public class ImagePanel extends JPanel {
         updateUI();
     }
 
-    private String getDefaultImage(boolean sourceImage) {
-        String showDefaultImage;
-        if (!sourceImage) {
-            showDefaultImage = "/placeholder.gif";
-        } else {
-            showDefaultImage = "/cat.jpg";
-        }
-        return showDefaultImage;
+    private String getDefaultImage() {
+         return "/placeholder.gif";
     }
 
 }
