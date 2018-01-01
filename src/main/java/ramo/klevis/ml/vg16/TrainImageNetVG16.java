@@ -22,6 +22,7 @@ import org.deeplearning4j.zoo.PretrainedType;
 import org.deeplearning4j.zoo.ZooModel;
 import org.deeplearning4j.zoo.model.VGG16;
 import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.VGG16ImagePreProcessor;
@@ -113,7 +114,6 @@ public class TrainImageNetVG16 {
     }
 
 
-
     public static void evalOn(ComputationGraph vgg16Transfer, DataSetIterator testIterator, int iEpoch) throws IOException {
 
         log.info("Evaluate model at iter " + iEpoch + " ....");
@@ -131,7 +131,6 @@ public class TrainImageNetVG16 {
         iterator.setPreProcessor(new VGG16ImagePreProcessor());
         return iterator;
     }
-
 
 //    private static void saveToDisk(DataSet currentFeaturized, int iterNum, boolean isTrain) {
 //        File fileFolder = isTrain ? new File(TRAIN_FOLDER) : new File(TEST_FOLDER);

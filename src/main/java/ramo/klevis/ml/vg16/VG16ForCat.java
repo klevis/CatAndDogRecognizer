@@ -3,6 +3,7 @@ package ramo.klevis.ml.vg16;
 import org.datavec.api.split.FileSplit;
 import org.datavec.api.split.InputSplit;
 import org.datavec.image.loader.NativeImageLoader;
+import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -38,6 +39,7 @@ public class VG16ForCat {
         scaler.transform(image);
         INDArray[] output = computationGraph.output(false, image);
         System.out.println("output = " + output);
+        eval(computationGraph, image);
         return output[0].getDouble(0) > 0.5 ? true : false;
     }
 
@@ -53,5 +55,11 @@ public class VG16ForCat {
     public ComputationGraph loadModel() throws IOException {
         computationGraph = ModelSerializer.restoreComputationGraph(new File(TRAINED_PATH_MODEL));
         return computationGraph;
+    }
+
+    private void eval(ComputationGraph vgg16Transfer, INDArray features) {
+        Evaluation eval = new Evaluation(1);
+        INDArray output = vgg16Transfer.outputSingle(features);
+        System.out.println("output = " + output);
     }
 }
