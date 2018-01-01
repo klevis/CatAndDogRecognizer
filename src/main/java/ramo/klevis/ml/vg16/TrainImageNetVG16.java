@@ -1,4 +1,4 @@
-package ramo.klevis;
+package ramo.klevis.ml.vg16;
 
 import org.datavec.api.io.filters.BalancedPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
@@ -139,9 +139,9 @@ public class TrainImageNetVG16 {
 //            fileFolder.mkdirs();
 //        }
 //        String fileName = "flowers-" + featurizeExtractionLayer + "-";
-//        fileName += isTrain ? "train-" : "test-";
+//        fileName += isTrain ? "vg16-" : "test-";
 //        fileName += iterNum + ".bin";
 //        currentFeaturized.save(new File(fileFolder, fileName));
-//        System.out.println("Saved " + (isTrain ? "train " : "test ") + "dataset #" + iterNum);
+//        System.out.println("Saved " + (isTrain ? "vg16 " : "test ") + "dataset #" + iterNum);
 //    }
 }
