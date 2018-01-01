@@ -36,7 +36,7 @@ import java.util.Random;
 /**
  * Created by klevis.ramo on 12/26/2017.
  */
-public class Run {
+public class TrainImageNetVG16 {
     private static final long seed = 12345;
     public static final Random randNumGen = new Random(seed);
     public static final String[] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
@@ -51,7 +51,7 @@ public class Run {
 
     private static final String featurizeExtractionLayer = "fc2";
 
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(Run.class);
+    private static final Logger log = org.slf4j.LoggerFactory.getLogger(TrainImageNetVG16.class);
     public static ParentPathLabelGenerator LABEL_GENERATOR_MAKER = new ParentPathLabelGenerator();
     public static BalancedPathFilter PATH_FILTER = new BalancedPathFilter(randNumGen, allowedExtensions, LABEL_GENERATOR_MAKER);
 
@@ -92,7 +92,7 @@ public class Run {
         vgg16Transfer.setListeners(new ScoreIterationListener(5));
         log.info(vgg16Transfer.summary());
 
-        DataSetIterator testIterator = null;
+//        DataSetIterator  testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
         int iEpoch = 0;
         int i = 0;
         while (iEpoch < EPOCH) {
@@ -101,22 +101,15 @@ public class Run {
                 vgg16Transfer.fit(trained);
                 if (i % 200 == 0 && i != 0) {
                     ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_10_32_" + i + ".zip"), false);
-//                    evalOn(vgg16Transfer, devIterator, iEpoch);
+//                    evalOn(vgg16Transfer, devIterator, i);
                 }
                 i++;
             }
 
             trainIterator.reset();
             iEpoch++;
-//            if (testIterator == null) {
-//                testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
-//            }
 //            evalOn(vgg16Transfer, testIterator, iEpoch);
         }
-
-
-
-
     }
 
 
