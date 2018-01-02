@@ -3,7 +3,6 @@ package ramo.klevis.ml.vg16;
 import org.datavec.api.split.FileSplit;
 import org.datavec.api.split.InputSplit;
 import org.datavec.image.loader.NativeImageLoader;
-import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -21,7 +20,6 @@ import java.io.IOException;
  */
 public class VG16ForCat {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(TrainImageNetVG16.class);
-    //    private static final String TRAINED_PATH_MODEL = TrainImageNetVG16.DATA_PATH + "/saved/RunEpoch_10_32_" + 660 + "_old.zip";
     private static final String TRAINED_PATH_MODEL = TrainImageNetVG16.DATA_PATH + "/saved/RunEpoch_class_2_soft_10_32_1800.zip";
     private static ComputationGraph computationGraph;
 
