@@ -66,9 +66,10 @@ public class UI {
                         predictionResponse.setForeground(Color.GREEN);
                     } else if(petType==PetType.DOG){
                         predictionResponse.setText("It is a Dog");
-                        predictionResponse.setForeground(Color.RED);
+                        predictionResponse.setForeground(Color.GREEN);
                     }else{
                         predictionResponse.setText("Not Sure...");
+                        predictionResponse.setForeground(Color.RED);
                     }
                     mainPanel.updateUI();
                 } catch (IOException e1) {
