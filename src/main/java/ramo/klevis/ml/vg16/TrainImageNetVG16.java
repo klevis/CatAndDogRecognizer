@@ -22,7 +22,6 @@ import org.deeplearning4j.zoo.PretrainedType;
 import org.deeplearning4j.zoo.ZooModel;
 import org.deeplearning4j.zoo.model.VGG16;
 import org.nd4j.linalg.activations.Activation;
-import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.VGG16ImagePreProcessor;
@@ -43,12 +42,14 @@ public class TrainImageNetVG16 {
     public static final String[] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
 
     private static final int TRAIN_LOAD_SIZE = 85;
-    private static int BATCH_SIZE = 15;
+    private static final int NUM_POSSIBLE_LABELS = 2;
+    private static final int SAVED_INTERVAL = 100;
+    private static int BATCH_SIZE = 16;
     private static final int EPOCH = 5;
 
     public static String DATA_PATH = "resources";
-    public static final String TRAIN_FOLDER = DATA_PATH + "/train";
-    public static final String TEST_FOLDER = DATA_PATH + "/test";
+    public static final String TRAIN_FOLDER = DATA_PATH + "/train_both";
+    public static final String TEST_FOLDER = DATA_PATH + "/test_both";
 
     private static final String featurizeExtractionLayer = "fc2";
 
@@ -86,22 +87,22 @@ public class TrainImageNetVG16 {
                 .removeVertexKeepConnections("predictions")
                 .addLayer("predictions",
                         new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
-                                .nIn(4096).nOut(1)
+                                .nIn(4096).nOut(NUM_POSSIBLE_LABELS)
                                 .weightInit(WeightInit.XAVIER)
-                                .activation(Activation.SIGMOID).build(), featurizeExtractionLayer)
+                                .activation(Activation.SOFTMAX).build(), featurizeExtractionLayer)
                 .build();
         vgg16Transfer.setListeners(new ScoreIterationListener(5));
         log.info(vgg16Transfer.summary());
 
-//        DataSetIterator  testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
+        DataSetIterator testIterator = null;
         int iEpoch = 0;
         int i = 0;
         while (iEpoch < EPOCH) {
             while (trainIterator.hasNext()) {
                 DataSet trained = trainIterator.next();
                 vgg16Transfer.fit(trained);
-                if (i % 200 == 0 && i != 0) {
-                    ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_10_32_" + i + ".zip"), false);
+                if (i % SAVED_INTERVAL == 0 && i != 0) {
+                    ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_class_2_soft_10_32_" + i + ".zip"), false);
 //                    evalOn(vgg16Transfer, devIterator, i);
                 }
                 i++;
@@ -109,6 +110,9 @@ public class TrainImageNetVG16 {
 
             trainIterator.reset();
             iEpoch++;
+//            if (testIterator == null) {
+//                testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
+//            }
 //            evalOn(vgg16Transfer, testIterator, iEpoch);
         }
     }
@@ -117,7 +121,7 @@ public class TrainImageNetVG16 {
     public static void evalOn(ComputationGraph vgg16Transfer, DataSetIterator testIterator, int iEpoch) throws IOException {
 
         log.info("Evaluate model at iter " + iEpoch + " ....");
-        Evaluation eval = vgg16Transfer.evaluate(testIterator, Arrays.asList("0", "1"));
+        Evaluation eval = vgg16Transfer.evaluate(testIterator);
         log.info(eval.stats());
         testIterator.reset();
 
@@ -127,20 +131,10 @@ public class TrainImageNetVG16 {
         ImageRecordReader imageRecordReader = new ImageRecordReader(224, 224, 3, LABEL_GENERATOR_MAKER);
         imageRecordReader.initialize(sample);
 
-        DataSetIterator iterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, 1);
+        DataSetIterator iterator = new RecordReaderDataSetIterator(imageRecordReader, BATCH_SIZE, 1, NUM_POSSIBLE_LABELS);
         iterator.setPreProcessor(new VGG16ImagePreProcessor());
         return iterator;
     }
 
-//    private static void saveToDisk(DataSet currentFeaturized, int iterNum, boolean isTrain) {
-//        File fileFolder = isTrain ? new File(TRAIN_FOLDER) : new File(TEST_FOLDER);
-//        if (iterNum == 0) {
-//            fileFolder.mkdirs();
-//        }
-//        String fileName = "flowers-" + featurizeExtractionLayer + "-";
-//        fileName += isTrain ? "vg16-" : "test-";
-//        fileName += iterNum + ".bin";
-//        currentFeaturized.save(new File(fileFolder, fileName));
-//        System.out.println("Saved " + (isTrain ? "vg16 " : "test ") + "dataset #" + iterNum);
-//    }
+
 }

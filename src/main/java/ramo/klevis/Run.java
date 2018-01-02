@@ -20,6 +20,7 @@ public class Run {
             try {
                 ui.initUI();
             } catch (Exception e) {
+                e.printStackTrace();
                 throw new RuntimeException(e);
             } finally {
                 progressBar.setVisible(false);
