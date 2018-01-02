@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -52,6 +51,7 @@ public class TrainImageNetVG16 {
     public static final String TEST_FOLDER = DATA_PATH + "/test_both";
 
     private static final String featurizeExtractionLayer = "fc2";
+    private static final String SAVING_PATH = DATA_PATH + "/saved/modelIteration_";
 
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(TrainImageNetVG16.class);
     public static ParentPathLabelGenerator LABEL_GENERATOR_MAKER = new ParentPathLabelGenerator();
@@ -94,7 +94,7 @@ public class TrainImageNetVG16 {
         vgg16Transfer.setListeners(new ScoreIterationListener(5));
         log.info(vgg16Transfer.summary());
 
-        DataSetIterator testIterator = null;
+        DataSetIterator testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
         int iEpoch = 0;
         int i = 0;
         while (iEpoch < EPOCH) {
@@ -102,18 +102,17 @@ public class TrainImageNetVG16 {
                 DataSet trained = trainIterator.next();
                 vgg16Transfer.fit(trained);
                 if (i % SAVED_INTERVAL == 0 && i != 0) {
-                    ModelSerializer.writeModel(vgg16Transfer, new File(DATA_PATH + "/saved/RunEpoch_class_2_soft_10_32_" + i + ".zip"), false);
-//                    evalOn(vgg16Transfer, devIterator, i);
+
+                    ModelSerializer.writeModel(vgg16Transfer, new File(SAVING_PATH + i + "epoch_" + iEpoch + ".zip"), false);
+                    evalOn(vgg16Transfer, devIterator, i);
                 }
                 i++;
             }
 
             trainIterator.reset();
             iEpoch++;
-//            if (testIterator == null) {
-//                testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
-//            }
-//            evalOn(vgg16Transfer, testIterator, iEpoch);
+
+            evalOn(vgg16Transfer, testIterator, iEpoch);
         }
     }
 

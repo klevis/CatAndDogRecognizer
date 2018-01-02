@@ -26,8 +26,8 @@ public class VG16ForCat {
     private static ComputationGraph computationGraph;
 
     public static void main(String[] args) throws IOException {
-//        new VG16ForCat().runOnTestSet();
-        new VG16ForCat().runOnDevSet();
+        new VG16ForCat().runOnTestSet();
+//        new VG16ForCat().runOnDevSet();
     }
 
 
@@ -50,7 +50,7 @@ public class VG16ForCat {
         ComputationGraph computationGraph = loadModel();
         File trainData = new File(TrainImageNetVG16.TEST_FOLDER);
         FileSplit test = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, TrainImageNetVG16.randNumGen);
-        InputSplit inputSplit = test.sample(TrainImageNetVG16.PATH_FILTER, 1)[0];
+        InputSplit inputSplit = test.sample(TrainImageNetVG16.PATH_FILTER, 100, 0)[0];
         DataSetIterator dataSetIterator = TrainImageNetVG16.getDataSetIterator(inputSplit);
         TrainImageNetVG16.evalOn(computationGraph, dataSetIterator, 1);
     }
