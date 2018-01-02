@@ -1,5 +1,6 @@
 package ramo.klevis.ml.vg16;
 
+import org.apache.commons.io.FileUtils;
 import org.datavec.api.io.filters.BalancedPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
 import org.datavec.api.split.FileSplit;
@@ -29,8 +30,13 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.slf4j.Logger;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.util.Random;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * Created by klevis.ramo on 12/26/2017.
@@ -51,17 +57,44 @@ public class TrainImageNetVG16 {
     public static final String TEST_FOLDER = DATA_PATH + "/test_both";
 
     private static final String featurizeExtractionLayer = "fc2";
+
     private static final String SAVING_PATH = DATA_PATH + "/saved/modelIteration_";
 
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(TrainImageNetVG16.class);
     public static ParentPathLabelGenerator LABEL_GENERATOR_MAKER = new ParentPathLabelGenerator();
     public static BalancedPathFilter PATH_FILTER = new BalancedPathFilter(randNumGen, allowedExtensions, LABEL_GENERATOR_MAKER);
 
+    private static final String DATA_URL = "https://dl.dropboxusercontent.com/s/tqnp49apphpzb40/dataTraining.zip?dl=0";
+
+    public static void unzip(File fileZip) throws IOException {
+        byte[] buffer = new byte[1024];
+        ZipInputStream zis = new ZipInputStream(new FileInputStream(fileZip));
+        ZipEntry zipEntry = zis.getNextEntry();
+        while (zipEntry != null) {
+            String fileName = zipEntry.getName();
+            File newFile = new File(DATA_PATH + "/" + fileName);
+            FileOutputStream fos = new FileOutputStream(newFile);
+            int len;
+            while ((len = zis.read(buffer)) > 0) {
+                fos.write(buffer, 0, len);
+            }
+            fos.close();
+            zipEntry = zis.getNextEntry();
+        }
+        zis.closeEntry();
+        zis.close();
+    }
+
     public static void main(String[] args) throws IOException {
         ZooModel zooModel = new VGG16();
+        log.info("Start Downloading VGG16 model...");
         ComputationGraph preTrainedNet = (ComputationGraph) zooModel.initPretrained(PretrainedType.IMAGENET);
         log.info(preTrainedNet.summary());
 
+        log.info("Start Downloading Data...");
+
+        downloadAndUnzipDataForTheFirstTime();
+        log.info("Data unzipped");
         // Define the File Paths
         File trainData = new File(TRAIN_FOLDER);
         File testData = new File(TEST_FOLDER);
@@ -113,6 +146,17 @@ public class TrainImageNetVG16 {
             iEpoch++;
 
             evalOn(vgg16Transfer, testIterator, iEpoch);
+        }
+    }
+
+    private static void downloadAndUnzipDataForTheFirstTime() throws IOException {
+        File destination = new File(DATA_PATH + "/data.zip");
+        if (!destination.exists()) {
+            FileUtils.copyURLToFile(new URL(DATA_URL), destination);
+            log.info("File downloaded");
+
+            log.info("Unzipping Data...");
+            unzip(destination);
         }
     }
 
