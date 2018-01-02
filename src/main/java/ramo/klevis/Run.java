@@ -5,6 +5,8 @@ import ramo.klevis.ml.ui.ProgressBar;
 import ramo.klevis.ml.ui.UI;
 
 import javax.swing.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +46,13 @@ public class Run {
 
     private static void downloadModelForFirstTime() throws MalformedURLException {
         JFrame mainFrame = new JFrame();
-        ProgressBar progressBar = new ProgressBar(mainFrame, true);
+        mainFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                System.exit(0);
+            }
+        });
+        ProgressBar progressBar = new ProgressBar(mainFrame, false);
         File model = new File("resources/model.zip");
         if (!model.exists()) {
             progressBar.showProgressBar("Downloading model for the first time 500MB!");

@@ -32,6 +32,11 @@
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant-compress</artifactId>
+            <version>1.5</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-ext -->
         <dependency>
             <groupId>org.slf4j</groupId>

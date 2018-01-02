@@ -26,19 +26,17 @@ public class ProgressBar {
     public void showProgressBar(String msg) {
         SwingUtilities.invokeLater(() -> {
             if (unDecoreate) {
-                mainFrame.setLocationRelativeTo(null);
                 mainFrame.setUndecorated(true);
             }
+            mainFrame.setLocationRelativeTo(null);
             progressBar = createProgressBar(mainFrame);
             progressBar.setString(msg);
             progressBar.setStringPainted(true);
             progressBar.setIndeterminate(true);
             progressBar.setVisible(true);
             mainFrame.add(progressBar, BorderLayout.NORTH);
-            if (unDecoreate) {
-                mainFrame.pack();
-                mainFrame.setVisible(true);
-            }
+            mainFrame.pack();
+            mainFrame.setVisible(true);
             mainFrame.repaint();
         });
     }
