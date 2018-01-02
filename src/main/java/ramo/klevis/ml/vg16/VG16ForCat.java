@@ -20,7 +20,7 @@ import java.io.IOException;
  */
 public class VG16ForCat {
     private static final Logger log = org.slf4j.LoggerFactory.getLogger(TrainImageNetVG16.class);
-    private static final String TRAINED_PATH_MODEL = TrainImageNetVG16.DATA_PATH + "/saved/RunEpoch_class_2_soft_10_32_1800.zip";
+    private static final String TRAINED_PATH_MODEL = TrainImageNetVG16.DATA_PATH + "/model.zip";
     private static ComputationGraph computationGraph;
 
     public static void main(String[] args) throws IOException {
@@ -29,7 +29,7 @@ public class VG16ForCat {
     }
 
 
-    public boolean detectCat(File file) throws IOException {
+    public PetType detectCat(File file) throws IOException {
         if (computationGraph == null) {
             computationGraph = loadModel();
         }
@@ -41,7 +41,13 @@ public class VG16ForCat {
         DataNormalization scaler = new VGG16ImagePreProcessor();
         scaler.transform(image);
         INDArray output = computationGraph.outputSingle(false, image);
-        return output.getDouble(0) > 0.5 ? true : false;
+        if (output.getDouble(0) > 0.95) {
+            return PetType.CAT;
+        }else if(output.getDouble(1) > 0.95){
+            return PetType.DOG;
+        }else{
+            return PetType.NOT_KNOWN;
+        }
     }
 
     private void runOnTestSet() throws IOException {

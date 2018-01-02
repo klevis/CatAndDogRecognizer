@@ -1,5 +1,6 @@
 package ramo.klevis.ml.ui;
 
+import ramo.klevis.ml.vg16.PetType;
 import ramo.klevis.ml.vg16.TrainImageNetVG16;
 import ramo.klevis.ml.vg16.VG16ForCat;
 
@@ -48,24 +49,26 @@ public class UI {
         mainPanel = new JPanel();
         mainPanel.setLayout(new GridBagLayout());
 
-        JButton chooseButton = new JButton("Choose Cat Image");
+        JButton chooseButton = new JButton("Choose Pet Image");
         chooseButton.addActionListener(e -> {
             chooseFileAction();
             predictionResponse.setText("");
         });
 
-        JButton predictButton = new JButton("Is it a cat?");
+        JButton predictButton = new JButton("Is it Cat or a Dog?");
         predictButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    boolean isCat = vg16ForCat.detectCat(selectedFile);
-                    if (isCat) {
-                        predictionResponse.setText("YES");
+                    PetType petType = vg16ForCat.detectCat(selectedFile);
+                    if (petType==PetType.CAT) {
+                        predictionResponse.setText("It is a Cat");
                         predictionResponse.setForeground(Color.GREEN);
-                    } else {
-                        predictionResponse.setText("MO");
+                    } else if(petType==PetType.DOG){
+                        predictionResponse.setText("It is a Dog");
                         predictionResponse.setForeground(Color.RED);
+                    }else{
+                        predictionResponse.setText("Not Sure...");
                     }
                     mainPanel.updateUI();
                 } catch (IOException e1) {
@@ -114,7 +117,7 @@ public class UI {
 
     public void chooseFileAction() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setCurrentDirectory(new File("target"));
+        chooser.setCurrentDirectory(new File(new File("").getAbsolutePath()));
         int action = chooser.showOpenDialog(null);
         if (action == JFileChooser.APPROVE_OPTION) {
             try {
