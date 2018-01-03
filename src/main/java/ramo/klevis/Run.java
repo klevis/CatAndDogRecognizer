@@ -9,12 +9,9 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.concurrent.Executors;
+import java.util.zip.Adler32;
 
 /**
  * Created by klevis.ramo on 1/1/2018.
@@ -44,7 +41,7 @@ public class Run {
 
     }
 
-    private static void downloadModelForFirstTime() throws MalformedURLException {
+    private static void downloadModelForFirstTime() throws IOException {
         JFrame mainFrame = new JFrame();
         mainFrame.addWindowListener(new WindowAdapter() {
             @Override
@@ -54,7 +51,8 @@ public class Run {
         });
         ProgressBar progressBar = new ProgressBar(mainFrame, false);
         File model = new File("resources/model.zip");
-        if (!model.exists()) {
+        if (!model.exists() || FileUtils.checksum(model, new Adler32()).getValue() != 3082129141l) {
+            model.delete();
             progressBar.showProgressBar("Downloading model for the first time 500MB!");
             URL modelURL = new URL(MODEL_URL);
 
