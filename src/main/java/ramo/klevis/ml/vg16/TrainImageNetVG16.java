@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Random;
+import java.util.zip.Adler32;
 
 /**
  * Created by klevis.ramo on 12/26/2017.
@@ -137,7 +138,8 @@ public class TrainImageNetVG16 {
 
     private static void downloadAndUnzipDataForTheFirstTime() throws IOException {
         File data = new File(DATA_PATH + "/data.zip");
-        if (!data.exists()) {
+        if (!data.exists()||FileUtils.checksum(data, new Adler32()).getValue()!=1195241806) {
+            data.delete();
             FileUtils.copyURLToFile(new URL(DATA_URL), data);
             LOGGER.info("File downloaded");
         }

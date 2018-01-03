@@ -125,7 +125,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>ramo.klevis.ml.vg16.TrainImageNetVG16</mainClass>
+                            <mainClass>ramo.klevis.Run</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
