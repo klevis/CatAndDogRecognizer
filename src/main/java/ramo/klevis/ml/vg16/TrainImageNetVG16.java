@@ -39,27 +39,28 @@ import java.util.Random;
  * Created by klevis.ramo on 12/26/2017.
  */
 public class TrainImageNetVG16 {
-    private static final long seed = 12345;
-    public static final Random randNumGen = new Random(seed);
-    public static final String[] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
 
-    private static final int TRAIN_LOAD_SIZE = 85;
-    private static final int NUM_POSSIBLE_LABELS = 2;
-    private static final int SAVED_INTERVAL = 100;
-    private static int BATCH_SIZE = 16;
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(TrainImageNetVG16.class);
+
+    private static final long seed = 12345;
+    public static final Random RAND_NUM_GEN = new Random(seed);
+    public static final String[] ALLOWED_FORMATS = BaseImageLoader.ALLOWED_FORMATS;
+    public static ParentPathLabelGenerator LABEL_GENERATOR_MAKER = new ParentPathLabelGenerator();
+    public static BalancedPathFilter PATH_FILTER = new BalancedPathFilter(RAND_NUM_GEN, ALLOWED_FORMATS, LABEL_GENERATOR_MAKER);
+
     private static final int EPOCH = 5;
+    private static final int BATCH_SIZE = 16;
+    private static final int TRAIN_SIZE = 85;
+    private static final int NUM_POSSIBLE_LABELS = 2;
+
+    private static final int SAVING_INTERVAL = 100;
 
     public static String DATA_PATH = "resources";
     public static final String TRAIN_FOLDER = DATA_PATH + "/train_both";
     public static final String TEST_FOLDER = DATA_PATH + "/test_both";
-
-    private static final String featurizeExtractionLayer = "fc2";
-
     private static final String SAVING_PATH = DATA_PATH + "/saved/modelIteration_";
 
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(TrainImageNetVG16.class);
-    public static ParentPathLabelGenerator LABEL_GENERATOR_MAKER = new ParentPathLabelGenerator();
-    public static BalancedPathFilter PATH_FILTER = new BalancedPathFilter(randNumGen, allowedExtensions, LABEL_GENERATOR_MAKER);
+    private static final String FREEZE_UNTIL_LAYER = "fc2";
 
     private static final String DATA_URL = "https://dl.dropboxusercontent.com/s/tqnp49apphpzb40/dataTraining.zip?dl=0";
 
@@ -73,22 +74,22 @@ public class TrainImageNetVG16 {
 
     public static void main(String[] args) throws IOException {
         ZooModel zooModel = new VGG16();
-        log.info("Start Downloading VGG16 model...");
+        LOGGER.info("Start Downloading VGG16 model...");
         ComputationGraph preTrainedNet = (ComputationGraph) zooModel.initPretrained(PretrainedType.IMAGENET);
-        log.info(preTrainedNet.summary());
+        LOGGER.info(preTrainedNet.summary());
 
-        log.info("Start Downloading Data...");
+        LOGGER.info("Start Downloading Data...");
 
         downloadAndUnzipDataForTheFirstTime();
-        log.info("Data unzipped");
+        LOGGER.info("Data unzipped");
         // Define the File Paths
         File trainData = new File(TRAIN_FOLDER);
         File testData = new File(TEST_FOLDER);
-        FileSplit train = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
-        FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, randNumGen);
+        FileSplit train = new FileSplit(trainData, NativeImageLoader.ALLOWED_FORMATS, RAND_NUM_GEN);
+        FileSplit test = new FileSplit(testData, NativeImageLoader.ALLOWED_FORMATS, RAND_NUM_GEN);
 
 
-        InputSplit[] sample = train.sample(PATH_FILTER, TRAIN_LOAD_SIZE, 100 - TRAIN_LOAD_SIZE);
+        InputSplit[] sample = train.sample(PATH_FILTER, TRAIN_SIZE, 100 - TRAIN_SIZE);
         DataSetIterator trainIterator = getDataSetIterator(sample[0]);
         DataSetIterator devIterator = getDataSetIterator(sample[1]);
 
@@ -102,16 +103,16 @@ public class TrainImageNetVG16 {
 
         ComputationGraph vgg16Transfer = new TransferLearning.GraphBuilder(preTrainedNet)
                 .fineTuneConfiguration(fineTuneConf)
-                .setFeatureExtractor(featurizeExtractionLayer)
+                .setFeatureExtractor(FREEZE_UNTIL_LAYER)
                 .removeVertexKeepConnections("predictions")
                 .addLayer("predictions",
                         new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
                                 .nIn(4096).nOut(NUM_POSSIBLE_LABELS)
                                 .weightInit(WeightInit.XAVIER)
-                                .activation(Activation.SOFTMAX).build(), featurizeExtractionLayer)
+                                .activation(Activation.SOFTMAX).build(), FREEZE_UNTIL_LAYER)
                 .build();
         vgg16Transfer.setListeners(new ScoreIterationListener(5));
-        log.info(vgg16Transfer.summary());
+        LOGGER.info(vgg16Transfer.summary());
 
         DataSetIterator testIterator = getDataSetIterator(test.sample(PATH_FILTER, 1, 0)[0]);
         int iEpoch = 0;
@@ -120,14 +121,13 @@ public class TrainImageNetVG16 {
             while (trainIterator.hasNext()) {
                 DataSet trained = trainIterator.next();
                 vgg16Transfer.fit(trained);
-                if (i % SAVED_INTERVAL == 0 && i != 0) {
+                if (i % SAVING_INTERVAL == 0 && i != 0) {
 
-                    ModelSerializer.writeModel(vgg16Transfer, new File(SAVING_PATH + i + "epoch_" + iEpoch + ".zip"), false);
+                    ModelSerializer.writeModel(vgg16Transfer, new File(SAVING_PATH + i + "_epoch_" + iEpoch + ".zip"), false);
                     evalOn(vgg16Transfer, devIterator, i);
                 }
                 i++;
             }
-
             trainIterator.reset();
             iEpoch++;
 
@@ -139,21 +139,19 @@ public class TrainImageNetVG16 {
         File data = new File(DATA_PATH + "/data.zip");
         if (!data.exists()) {
             FileUtils.copyURLToFile(new URL(DATA_URL), data);
-            log.info("File downloaded");
-
-            log.info("Unzipping Data...");
+            LOGGER.info("File downloaded");
         }
         if (!new File(TRAIN_FOLDER).exists()) {
+            LOGGER.info("Unzipping Data...");
             unzip(data);
         }
     }
 
 
     public static void evalOn(ComputationGraph vgg16Transfer, DataSetIterator testIterator, int iEpoch) throws IOException {
-
-        log.info("Evaluate model at iter " + iEpoch + " ....");
+        LOGGER.info("Evaluate model at iteration " + iEpoch + " ....");
         Evaluation eval = vgg16Transfer.evaluate(testIterator);
-        log.info(eval.stats());
+        LOGGER.info(eval.stats());
         testIterator.reset();
 
     }
