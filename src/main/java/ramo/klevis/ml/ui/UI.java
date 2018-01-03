@@ -118,7 +118,7 @@ public class UI {
 
     public void chooseFileAction() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setCurrentDirectory(new File(new File("").getAbsolutePath()));
+        chooser.setCurrentDirectory(new File(new File("resources").getAbsolutePath()));
         int action = chooser.showOpenDialog(null);
         if (action == JFileChooser.APPROVE_OPTION) {
             try {

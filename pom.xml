@@ -20,13 +20,9 @@
             <url>http://repo1.maven.org/maven2/</url>
         </repository>
     </repositories>
-    <!--    <repositories>
-            <repository><id>a</id><url>https://mvnrepository.com/artifact/org.apache.spark/spark-core_2.10</url></repository>
-        </repositories>-->
+
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core_2.10 -->
-        <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core -->
-        <!--LOGGER-->
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -91,7 +87,6 @@
         </dependency>
 
     </dependencies>
-    <!-- https://mvnrepository.com/artifact/org.apache.spark/spark-core_2.10 -->
 
 
     <build>
