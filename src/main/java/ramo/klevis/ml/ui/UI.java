@@ -1,15 +1,12 @@
 package ramo.klevis.ml.ui;
 
 import ramo.klevis.ml.vg16.PetType;
-import ramo.klevis.ml.vg16.TrainImageNetVG16;
 import ramo.klevis.ml.vg16.VG16ForCat;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -23,6 +20,7 @@ import java.io.InputStream;
  */
 public class UI {
 
+    private static final double THRESHOLD_ACCURACY = 0.50;
     private JFrame mainFrame;
     private JPanel mainPanel;
     private static final int FRAME_WIDTH = 800;
@@ -31,6 +29,8 @@ public class UI {
     private JLabel predictionResponse;
     private VG16ForCat vg16ForCat;
     private File selectedFile;
+    private SpinnerNumberModel modelThresholdSize;
+    private JSpinner thresholdField;
 
     public UI() throws Exception {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -56,25 +56,22 @@ public class UI {
         });
 
         JButton predictButton = new JButton("Is it Cat or a Dog?");
-        predictButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    PetType petType = vg16ForCat.detectCat(selectedFile);
-                    if (petType==PetType.CAT) {
-                        predictionResponse.setText("It is a Cat");
-                        predictionResponse.setForeground(Color.GREEN);
-                    } else if(petType==PetType.DOG){
-                        predictionResponse.setText("It is a Dog");
-                        predictionResponse.setForeground(Color.GREEN);
-                    }else{
-                        predictionResponse.setText("Not Sure...");
-                        predictionResponse.setForeground(Color.RED);
-                    }
-                    mainPanel.updateUI();
-                } catch (IOException e1) {
-                    throw new RuntimeException(e1);
+        predictButton.addActionListener(e -> {
+            try {
+                PetType petType = vg16ForCat.detectCat(selectedFile, (Double) thresholdField.getValue());
+                if (petType == PetType.CAT) {
+                    predictionResponse.setText("It is a Cat");
+                    predictionResponse.setForeground(Color.GREEN);
+                } else if (petType == PetType.DOG) {
+                    predictionResponse.setText("It is a Dog");
+                    predictionResponse.setForeground(Color.GREEN);
+                } else {
+                    predictionResponse.setText("Not Sure...");
+                    predictionResponse.setForeground(Color.RED);
                 }
+                mainPanel.updateUI();
+            } catch (IOException e1) {
+                throw new RuntimeException(e1);
             }
         });
 
@@ -95,6 +92,10 @@ public class UI {
         c.weighty = 0;
         c.weightx = 0;
         JPanel buttonsPanel = new JPanel(new FlowLayout());
+        modelThresholdSize = new SpinnerNumberModel(THRESHOLD_ACCURACY, 0.5, 1, 0.1);
+        thresholdField = new JSpinner(modelThresholdSize);
+        buttonsPanel.add(new JLabel("Threshold Accuracy %"));
+        buttonsPanel.add(thresholdField);
         buttonsPanel.add(chooseButton);
         buttonsPanel.add(predictButton);
         mainPanel.add(buttonsPanel, c);

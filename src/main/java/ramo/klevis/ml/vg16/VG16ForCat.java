@@ -29,7 +29,7 @@ public class VG16ForCat {
     }
 
 
-    public PetType detectCat(File file) throws IOException {
+    public PetType detectCat(File file, Double threshold) throws IOException {
         if (computationGraph == null) {
             computationGraph = loadModel();
         }
@@ -41,9 +41,9 @@ public class VG16ForCat {
         DataNormalization scaler = new VGG16ImagePreProcessor();
         scaler.transform(image);
         INDArray output = computationGraph.outputSingle(false, image);
-        if (output.getDouble(0) > 0.95) {
+        if (output.getDouble(0) > threshold) {
             return PetType.CAT;
-        }else if(output.getDouble(1) > 0.95){
+        }else if(output.getDouble(1) > threshold){
             return PetType.DOG;
         }else{
             return PetType.NOT_KNOWN;
