@@ -139,7 +139,7 @@ public class UI {
 
     private JFrame createMainFrame() {
         JFrame mainFrame = new JFrame();
-        mainFrame.setTitle("Digit Recognizer");
+        mainFrame.setTitle("Image Recognizer");
         mainFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         mainFrame.setSize(FRAME_WIDTH, FRAME_HEIGHT);
         mainFrame.setLocationRelativeTo(null);
