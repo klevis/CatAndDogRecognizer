@@ -31,6 +31,7 @@ public class UI {
     private File selectedFile;
     private SpinnerNumberModel modelThresholdSize;
     private JSpinner thresholdField;
+    private final Font sansSerifBold = new Font("SansSerif", Font.BOLD, 18);
 
     public UI() throws Exception {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -94,7 +95,9 @@ public class UI {
         JPanel buttonsPanel = new JPanel(new FlowLayout());
         modelThresholdSize = new SpinnerNumberModel(THRESHOLD_ACCURACY, 0.5, 1, 0.1);
         thresholdField = new JSpinner(modelThresholdSize);
-        buttonsPanel.add(new JLabel("Threshold Accuracy %"));
+        JLabel label = new JLabel("Threshold Accuracy %");
+        label.setFont(sansSerifBold);
+        buttonsPanel.add(label);
         buttonsPanel.add(thresholdField);
         buttonsPanel.add(chooseButton);
         buttonsPanel.add(predictButton);
